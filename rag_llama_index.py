@@ -5,20 +5,24 @@ from llama_index.embeddings.ollama import OllamaEmbedding
 
 # Define the directory where the index will be saved
 PERSIST_DIR = "./storage"
-KNOWLEDGE_FILE = "knowledge.txt"
+KNOWLEDGE_DIR = "knowledge"
 
 # --- RAG Step 1: Index Management (Load or Create) ---
 
 # 1. Define the LLM and Embedding Model (always needed for querying)
-ollama_llm = OllamaLLM(model="gemma3:4b", request_timeout=60.0)
-ollama_embed_model = OllamaEmbedding(model_name="nomic-embed-text")
+ollama_llm = OllamaLLM(model="gemma3:4b", request_timeout=120.0)
+ollama_embed_model = OllamaEmbedding(model_name="nomic-embed-text", request_timeout=120.0)
 
 # 2. Check if the index already exists
 if not os.path.exists(PERSIST_DIR):
     print("Starting RAG Ingestion Pipeline: Building NEW Index...")
     
     # Load documents
-    loader = SimpleDirectoryReader(input_files=[KNOWLEDGE_FILE])
+    loader = SimpleDirectoryReader(
+        input_dir=KNOWLEDGE_DIR,
+        required_exts=[".md"],
+        recursive=True
+    )
     documents = loader.load_data()
 
     # Create the Vector Store Index
@@ -62,5 +66,11 @@ def ask_rag(question):
     print("\n💡 RAG Answer:")
     print(response.response)
 
+    print("\n📚 Source Nodes:")
+    for doc in response.source_nodes:
+        print(f" - {doc.node.metadata['file_path']} (Score: {doc.score:.4f})")
+
 # Let's test our knowledge!
 ask_rag("I want to plant a tree. Who should I contact?")
+ask_rag("I like hot bath, where should I go?")
+ask_rag("I want to have a friend that interested in space, who should I friend with?")
